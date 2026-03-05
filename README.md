@@ -10,7 +10,7 @@ Real-time clearance deal alerts for Home Depot, Lowe's, and Walmart. Built for r
 - **Push Notifications**: Firebase Cloud Messaging
 - **Backend API**: Node.js + Express (Railway or Render)
 
----
+--- 
 
 ## Setup Instructions 
 
