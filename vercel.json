@@ -1,0 +1,35 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/static/(.*)",
+      "headers": { "cache-control": "s-maxage=31536000,immutable" },
+      "dest": "/static/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "/favicon.ico"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ],
+  "env": {
+    "REACT_APP_SUPABASE_URL": "@supabase_url",
+    "REACT_APP_SUPABASE_PUBLISHABLE_KEY": "@supabase_publishable_key",
+    "REACT_APP_WHOP_CLIENT_ID": "@whop_client_id",
+    "REACT_APP_WHOP_REDIRECT_URI": "@whop_redirect_uri",
+    "REACT_APP_FIREBASE_PROJECT_ID": "@firebase_project_id",
+    "REACT_APP_FIREBASE_MESSAGING_SENDER_ID": "@firebase_sender_id"
+  }
+}
