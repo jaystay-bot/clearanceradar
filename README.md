@@ -12,7 +12,7 @@ Real-time clearance deal alerts for Home Depot, Lowe's, and Walmart. Built for r
 
 ---
 
-## Setup Instructions
+## Setup Instructions 
 
 ### 1. Supabase Setup
 1. Go to your Supabase project dashboard
