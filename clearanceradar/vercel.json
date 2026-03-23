@@ -4,32 +4,24 @@
     {
       "src": "package.json",
       "use": "@vercel/static-build",
-      "config": {
-        "distDir": "build"
-      }
-    }
+      "config": { "distDir": "build" }
+    },
+    { "src": "api/trigger-scrape.js", "use": "@vercel/node" },
+    { "src": "api/apify-webhook.js", "use": "@vercel/node" }
   ],
+  "functions": {
+    "api/trigger-scrape.js": { "maxDuration": 30 },
+    "api/apify-webhook.js": { "maxDuration": 30 }
+  },
   "routes": [
+    { "src": "/api/trigger-scrape", "dest": "/api/trigger-scrape.js" },
+    { "src": "/api/apify-webhook", "dest": "/api/apify-webhook.js" },
     {
       "src": "/static/(.*)",
       "headers": { "cache-control": "s-maxage=31536000,immutable" },
       "dest": "/static/$1"
     },
-    {
-      "src": "/favicon.ico",
-      "dest": "/favicon.ico"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ],
-  "env": {
-    "REACT_APP_SUPABASE_URL": "@supabase_url",
-    "REACT_APP_SUPABASE_PUBLISHABLE_KEY": "@supabase_publishable_key",
-    "REACT_APP_WHOP_CLIENT_ID": "@whop_client_id",
-    "REACT_APP_WHOP_REDIRECT_URI": "@whop_redirect_uri",
-    "REACT_APP_FIREBASE_PROJECT_ID": "@firebase_project_id",
-    "REACT_APP_FIREBASE_MESSAGING_SENDER_ID": "@firebase_sender_id"
-  }
+    { "src": "/favicon.ico", "dest": "/favicon.ico" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ]
 }
