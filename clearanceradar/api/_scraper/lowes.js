@@ -61,14 +61,18 @@ async function fetchLowesClearance(store) {
   for (let page = 0; page < MAX_PAGES; page++) {
     const offset = page * PAGE_SIZE;
 
-    // Lowe's internal clearance endpoint — storeId scopes results to that location
-    // N-5yc1vZc7nr is Lowe's Endeca navigation attribute for clearance items
-    const url = `https://www.lowes.com/pd/search-n-5yc1vZc7nr?storeId=${storeId}&offset=${offset}&size=${PAGE_SIZE}`;
+    // Lowe's clearance PLP — 5yc1vZc7nr is the Endeca nav code for Clearance
+    // storeId scopes results to that store; sn cookie is set as backup
+    const url = `https://www.lowes.com/pl/Clearance/5yc1vZc7nr?storeId=${storeId}&Nrpp=${PAGE_SIZE}&No=${offset}`;
 
     let items = [];
     try {
       const response = await axios.get(url, {
-        headers: HEADERS,
+        headers: {
+          ...HEADERS,
+          // Setting sn cookie tells Lowe's which store to scope inventory to
+          'Cookie': `sn=${storeId}; region=0; userLocale=en_US`,
+        },
         timeout: 30000,
         maxRedirects: 5,
       });
@@ -93,6 +97,7 @@ async function fetchLowesClearance(store) {
         deals.push({
           retailer: 'lowes',
           store_id: store.id,
+          store_number: store.store_number,
           product_name: item.product_name,
           sku: item.sku,
           product_url: item.product_url,
@@ -152,15 +157,25 @@ function extractFromHtml(html) {
       const nextData = JSON.parse(raw);
       const pageProps = nextData?.props?.pageProps;
 
+      // Try every known path Lowe's has used across different page versions
       const products =
         pageProps?.searchResults?.products ||
         pageProps?.plpResults?.products ||
         pageProps?.products ||
         pageProps?.initialData?.products ||
+        pageProps?.hydrationData?.plpReducer?.products ||
+        pageProps?.hydrationData?.searchReducer?.products ||
+        pageProps?.initialProps?.products ||
+        nextData?.query?.products ||
         [];
 
       if (products.length > 0) {
+        console.log(`  Found ${products.length} products in __NEXT_DATA__`);
         return products.map(mapProduct).filter(Boolean);
+      }
+      // Log what keys are available to help debugging
+      if (pageProps) {
+        console.log('  __NEXT_DATA__ pageProps keys:', Object.keys(pageProps).slice(0, 10));
       }
     }
   } catch (_) { /* fall through */ }

@@ -15,8 +15,8 @@ export default function DealCard({ deal, onFlag, isNew }) {
     ? (deal.original_price - deal.clearance_price).toFixed(2)
     : null;
 
-  const timeAgo = deal.first_seen_at
-    ? formatDistanceToNow(new Date(deal.first_seen_at), { addSuffix: true })
+  const timeAgo = deal.first_seen
+    ? formatDistanceToNow(new Date(deal.first_seen), { addSuffix: true })
     : '';
 
   function handleFlag(e) {
@@ -28,11 +28,8 @@ export default function DealCard({ deal, onFlag, isNew }) {
   }
 
   function openMap() {
-    if (deal.store_locations) {
-      const store = deal.store_locations;
-      const query = encodeURIComponent(`${RETAILER_LABELS[deal.retailer]} ${store.address || store.city}`);
-      window.open(`https://maps.google.com/maps?q=${query}`, '_blank');
-    }
+    const query = encodeURIComponent(`${RETAILER_LABELS[deal.retailer] || deal.retailer} ${deal.store_id || ''}`);
+    window.open(`https://maps.google.com/maps?q=${query}`, '_blank');
   }
 
   return (
@@ -47,7 +44,7 @@ export default function DealCard({ deal, onFlag, isNew }) {
           )}
         </div>
 
-        <div className="deal-name">{deal.product_name}</div>
+        <div className="deal-name">{deal.name}</div>
 
         <div className="deal-prices">
           <span className="deal-clearance-price">
@@ -81,11 +78,9 @@ export default function DealCard({ deal, onFlag, isNew }) {
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
               <circle cx="12" cy="10" r="3"/>
             </svg>
-            {deal.store_locations?.city || 'Nearby'}
-            {deal.in_stock_quantity && deal.in_stock_quantity <= 5 && (
-              <span className="deal-qty" style={{ marginLeft: 6 }}>
-                Only {deal.in_stock_quantity} left!
-              </span>
+            {deal.store_id || 'Nearby'}
+            {deal.in_stock === false && (
+              <span className="deal-qty" style={{ marginLeft: 6 }}>Out of stock</span>
             )}
           </span>
           <span className="deal-time">{timeAgo}</span>
@@ -102,12 +97,12 @@ export default function DealCard({ deal, onFlag, isNew }) {
               {RETAILER_LABELS[deal.retailer]}
             </span>
 
-            <h2 className="modal-title">{deal.product_name}</h2>
+            <h2 className="modal-title">{deal.name}</h2>
 
             {deal.image_url && (
               <img
                 src={deal.image_url}
-                alt={deal.product_name}
+                alt={deal.name}
                 style={{ width: '100%', borderRadius: 10, marginBottom: 16, objectFit: 'contain', maxHeight: 200, background: 'var(--bg-secondary)' }}
               />
             )}
@@ -133,33 +128,33 @@ export default function DealCard({ deal, onFlag, isNew }) {
               </div>
               <div style={{ background: 'var(--bg-secondary)', borderRadius: 10, padding: 12 }}>
                 <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>In Stock</div>
-                <div style={{ fontSize: 13, fontWeight: 500, color: deal.in_stock_quantity && deal.in_stock_quantity <= 5 ? 'var(--warning)' : 'var(--text-primary)' }}>
-                  {deal.in_stock_quantity ?? 'Unknown'} units
+                <div style={{ fontSize: 13, fontWeight: 500, color: deal.in_stock === false ? 'var(--warning)' : 'var(--text-primary)' }}>
+                  {deal.in_stock === false ? 'Out of stock' : deal.in_stock === true ? 'In stock' : 'Unknown'}
                 </div>
               </div>
               <div style={{ background: 'var(--bg-secondary)', borderRadius: 10, padding: 12 }}>
                 <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Store</div>
                 <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>
-                  {deal.store_locations?.name || deal.store_locations?.city || 'Nearby'}
+                  {deal.store_id || 'Nearby'}
                 </div>
               </div>
               <div style={{ background: 'var(--bg-secondary)', borderRadius: 10, padding: 12 }}>
                 <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Verified</div>
                 <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500 }}>
-                  {deal.last_verified_at ? formatDistanceToNow(new Date(deal.last_verified_at), { addSuffix: true }) : 'Recently'}
+                  {deal.last_seen ? formatDistanceToNow(new Date(deal.last_seen), { addSuffix: true }) : 'Recently'}
                 </div>
               </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {deal.store_locations && (
+              {deal.store_id && (
                 <button className="btn btn-primary btn-full" onClick={openMap}>
                   📍 Get Directions
                 </button>
               )}
-              {deal.product_url && (
+              {deal.url && (
                 <a
-                  href={deal.product_url}
+                  href={deal.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="btn btn-secondary btn-full"

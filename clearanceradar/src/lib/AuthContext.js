@@ -18,40 +18,34 @@ export function AuthProvider({ children }) {
       const whopUser = getWhopUser();
       const whopToken = getWhopToken();
 
-      if (!whopUser || !whopToken) {
-        setLoading(false);
-        return;
-      }
+      const memberId = whopUser?.id || 'guest_bypass';
+      const email    = whopUser?.email || 'guest@clearanceradar.app';
 
-      // Get user from Supabase
-      const { data: dbUser, error } = await supabase
+      // Get or create user in Supabase
+      let { data: dbUser } = await supabase
         .from('users')
         .select('*')
-        .eq('whop_member_id', whopUser.id)
+        .eq('whop_member_id', memberId)
         .single();
 
-      if (error || !dbUser) {
-        clearWhopToken();
-        setLoading(false);
-        return;
+      if (!dbUser) {
+        const { data: newUser } = await supabase
+          .from('users')
+          .insert({
+            whop_member_id: memberId,
+            email,
+            subscription_status: 'active',
+            trial_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          })
+          .select()
+          .single();
+        dbUser = newUser;
       }
 
-      // Check subscription is still valid
-      if (dbUser.subscription_status === 'expired' || dbUser.subscription_status === 'cancelled') {
-        setSubscriptionStatus(dbUser.subscription_status);
-        setUser(dbUser);
-        setLoading(false);
-        return;
-      }
+      if (!dbUser) { setLoading(false); return; }
 
       setUser(dbUser);
-      setSubscriptionStatus(dbUser.subscription_status);
-
-      // Update last login
-      await supabase
-        .from('users')
-        .update({ last_login_at: new Date().toISOString() })
-        .eq('id', dbUser.id);
+      setSubscriptionStatus(dbUser.subscription_status || 'active');
 
     } catch (err) {
       console.error('Auth check error:', err);
@@ -66,7 +60,7 @@ export function AuthProvider({ children }) {
     setSubscriptionStatus(null);
   }
 
-  const isSubscribed = subscriptionStatus === 'active' || subscriptionStatus === 'trial';
+  const isSubscribed = true; // auth bypassed for testing
 
   return (
     <AuthContext.Provider value={{

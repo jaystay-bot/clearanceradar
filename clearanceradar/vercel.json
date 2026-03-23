@@ -1,8 +1,14 @@
 {
   "version": 2,
   "functions": {
-    "api/trigger-scrape.js": { "maxDuration": 30 },
+    "api/trigger-scrape.js": { "maxDuration": 60 },
     "api/apify-webhook.js": { "maxDuration": 30 },
-    "api/auth/whop.js": { "maxDuration": 15 }
-  }
+    "api/auth/whop.js":     { "maxDuration": 15 }
+  },
+  "crons": [
+    {
+      "path": "/api/trigger-scrape",
+      "schedule": "0 */2 * * *"
+    }
+  ]
 }
