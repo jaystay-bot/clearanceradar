@@ -2,6 +2,7 @@
   "version": 2,
   "functions": {
     "api/trigger-scrape.js": { "maxDuration": 30 },
-    "api/apify-webhook.js": { "maxDuration": 30 }
+    "api/apify-webhook.js": { "maxDuration": 30 },
+    "api/auth/whop.js": { "maxDuration": 15 }
   }
 }
