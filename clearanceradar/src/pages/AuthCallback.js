@@ -36,7 +36,10 @@ export default function AuthCallback() {
           body: JSON.stringify({ code }),
         });
 
-        if (!response.ok) throw new Error('Auth exchange failed');
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(`Auth exchange failed (${response.status}): ${errData.detail || errData.error || 'unknown'}`);
+        }
         const data = await response.json();
         await processLogin(data.access_token, data.member_id, data.email);
         return;
@@ -46,8 +49,7 @@ export default function AuthCallback() {
 
     } catch (err) {
       console.error('Auth callback error:', err);
-      setStatus('Login failed. Redirecting...');
-      setTimeout(() => navigate('/login'), 2000);
+      setStatus(`Login failed: ${err.message}`);
     }
   }
 
