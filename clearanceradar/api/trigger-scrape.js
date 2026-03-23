@@ -1,67 +1,94 @@
-const axios = require('axios');
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });
 
-const APIFY_TOKEN = process.env.APIFY_API_TOKEN;
-const APIFY_ACTOR = 'natanielsantos~lowe-s-scraper';
-const APIFY_BASE = 'https://api.apify.com/v2';
+const { fetchLowesClearance } = require('./_scraper/lowes');
+const { createClient } = require('@supabase/supabase-js');
 
 const DEFAULT_STORES = [
-  { store_number: '0552', city: 'Norfolk', state: 'VA' },
-  { store_number: '0553', city: 'Virginia Beach', state: 'VA' },
+  { id: null, store_number: '0552', city: 'Norfolk', state: 'VA' },
+  { id: null, store_number: '0553', city: 'Virginia Beach', state: 'VA' },
 ];
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Content-Type', 'application/json');
 
-  if (!APIFY_TOKEN) {
-    return res.status(500).json({ error: 'APIFY_API_TOKEN not set in Vercel environment variables' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const webhookBase = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'https://clearanceradar.vercel.app';
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_KEY
+  );
+
+  // Accept a single storeId to scrape, or scrape all default stores
+  const { storeId } = req.body || {};
+
+  let targetStores = DEFAULT_STORES;
+
+  if (storeId) {
+    // Look up store in DB, fall back to in-memory stub
+    const { data: dbStore } = await supabase
+      .from('store_locations')
+      .select('*')
+      .eq('retailer', 'lowes')
+      .eq('store_number', storeId)
+      .single();
+
+    targetStores = dbStore ? [dbStore] : [{ id: null, store_number: storeId }];
+  }
 
   try {
-    const runs = [];
+    const allDeals = [];
 
-    for (const store of DEFAULT_STORES) {
-      const clearanceUrl = `https://www.lowes.com/pl/Clearance-Deals/4294857975?storeId=${store.store_number}`;
+    for (const store of targetStores) {
+      const deals = await fetchLowesClearance(store);
+      allDeals.push(...deals);
+    }
 
-      const webhooksParam = Buffer.from(
-        JSON.stringify([{
-          eventTypes: ['ACTOR.RUN.SUCCEEDED', 'ACTOR.RUN.FAILED'],
-          requestUrl: `${webhookBase}/api/apify-webhook`,
-        }])
-      ).toString('base64');
+    // Upsert deals into Supabase
+    let saved = 0;
+    let errors = 0;
 
-      const { data: runData } = await axios.post(
-        `${APIFY_BASE}/acts/${APIFY_ACTOR}/runs?token=${APIFY_TOKEN}&webhooks=${webhooksParam}`,
-        {
-          startUrls: [{ url: clearanceUrl }],
-          maxItems: 100,
-          proxyConfiguration: { useApifyProxy: true },
-        },
-        {
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 15000,
-        }
-      );
+    for (const deal of allDeals) {
+      const { error } = await supabase
+        .from('deals')
+        .upsert(
+          {
+            retailer: deal.retailer,
+            store_location_id: deal.store_id,
+            product_name: deal.product_name,
+            sku: deal.sku,
+            product_url: deal.product_url,
+            image_url: deal.image_url,
+            original_price: deal.original_price,
+            clearance_price: deal.clearance_price,
+            discount_percent: deal.discount_percent,
+            category: deal.category,
+            in_stock_quantity: deal.in_stock_quantity,
+            is_active: true,
+            last_verified_at: new Date().toISOString(),
+          },
+          { onConflict: 'retailer,sku' }
+        );
 
-      runs.push({
-        store: `${store.city}, ${store.state} (#${store.store_number})`,
-        runId: runData.data?.id,
-        status: runData.data?.status,
-      });
+      if (error) {
+        console.error('upsert error:', error.message, 'sku:', deal.sku);
+        errors++;
+      } else {
+        saved++;
+      }
     }
 
     return res.json({
-      status: 'started',
-      message: `Scraping ${runs.length} Lowe's store(s). Deals will appear in Supabase in ~2-3 minutes.`,
-      webhookUrl: `${webhookBase}/api/apify-webhook`,
-      runs,
+      status: 'complete',
+      stores: targetStores.map(s => s.store_number),
+      dealsFound: allDeals.length,
+      dealsSaved: saved,
+      errors,
     });
   } catch (err) {
-    console.error('trigger-scrape error:', err.response?.data || err.message);
-    return res.status(500).json({ error: err.message, detail: err.response?.data });
+    console.error('trigger-scrape error:', err.message);
+    return res.status(500).json({ error: err.message });
   }
 };
