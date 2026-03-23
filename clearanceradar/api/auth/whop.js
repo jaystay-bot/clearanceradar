@@ -39,7 +39,10 @@ module.exports = async (req, res) => {
 
     if (!tokenRes.ok) {
       const errBody = await tokenRes.text();
-      console.error(`Whop token exchange failed ${tokenRes.status}:`, errBody);
+      console.error('[whop-auth] token exchange status:', tokenRes.status);
+      console.error('[whop-auth] token exchange body:', errBody);
+      console.error('[whop-auth] redirect_uri used:', REDIRECT_URI);
+      console.error('[whop-auth] client_id used:', clientId);
       return res.status(502).json({
         error: 'Token exchange failed',
         detail: errBody,
