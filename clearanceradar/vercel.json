@@ -1,27 +1,7 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "build" }
-    },
-    { "src": "api/trigger-scrape.js", "use": "@vercel/node" },
-    { "src": "api/apify-webhook.js", "use": "@vercel/node" }
-  ],
   "functions": {
     "api/trigger-scrape.js": { "maxDuration": 30 },
     "api/apify-webhook.js": { "maxDuration": 30 }
-  },
-  "routes": [
-    { "src": "/api/trigger-scrape", "dest": "/api/trigger-scrape.js" },
-    { "src": "/api/apify-webhook", "dest": "/api/apify-webhook.js" },
-    {
-      "src": "/static/(.*)",
-      "headers": { "cache-control": "s-maxage=31536000,immutable" },
-      "dest": "/static/$1"
-    },
-    { "src": "/favicon.ico", "dest": "/favicon.ico" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  }
 }
