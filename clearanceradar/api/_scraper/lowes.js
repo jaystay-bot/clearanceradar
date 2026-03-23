@@ -4,7 +4,7 @@ const { createClient } = require('@supabase/supabase-js');
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
 const APIFY_TOKEN = process.env.APIFY_API_TOKEN;
-const APIFY_ACTOR = 'tropical_quince~lowes-product-scraper';
+const APIFY_ACTOR = 'natanielsantos~lowe-s-scraper';
 const APIFY_BASE = 'https://api.apify.com/v2';
 
 async function scrapeLowes() {

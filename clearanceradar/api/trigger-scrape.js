@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const APIFY_TOKEN = process.env.APIFY_API_TOKEN;
-const APIFY_ACTOR = 'tropical_quince~lowes-product-scraper';
+const APIFY_ACTOR = 'natanielsantos~lowe-s-scraper';
 const APIFY_BASE = 'https://api.apify.com/v2';
 
 const DEFAULT_STORES = [
