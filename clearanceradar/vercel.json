@@ -3,16 +3,5 @@
   "functions": {
     "api/trigger-scrape.js": { "maxDuration": 30 },
     "api/apify-webhook.js": { "maxDuration": 30 }
-  },
-  "routes": [
-    { "src": "/api/trigger-scrape", "dest": "/api/trigger-scrape.js" },
-    { "src": "/api/apify-webhook", "dest": "/api/apify-webhook.js" },
-    {
-      "src": "/static/(.*)",
-      "headers": { "cache-control": "s-maxage=31536000,immutable" },
-      "dest": "/static/$1"
-    },
-    { "src": "/favicon.ico", "dest": "/favicon.ico" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
+  }
 }
