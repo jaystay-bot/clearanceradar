@@ -25,20 +25,22 @@ module.exports = async (req, res) => {
 
   try {
     // 1. Exchange code for access token
-    // OAuth2 spec requires application/x-www-form-urlencoded for token endpoint
+    // Whop requires HTTP Basic Auth for client authentication (client_secret_basic)
+    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     const params = new URLSearchParams({
-      client_id:     clientId,
-      client_secret: clientSecret,
       code,
-      grant_type:    'authorization_code',
-      redirect_uri:  REDIRECT_URI,
+      grant_type:   'authorization_code',
+      redirect_uri: REDIRECT_URI,
     });
 
     console.error('[whop-auth] attempting token exchange, redirect_uri:', REDIRECT_URI);
 
     const tokenRes = await fetch('https://api.whop.com/v5/oauth/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type':  'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${basicAuth}`,
+      },
       body: params.toString(),
     });
 
