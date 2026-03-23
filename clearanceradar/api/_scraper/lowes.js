@@ -97,6 +97,7 @@ async function fetchLowesClearance(store) {
         deals.push({
           retailer: 'lowes',
           store_id: store.id,
+          store_number: store.store_number,
           product_name: item.product_name,
           sku: item.sku,
           product_url: item.product_url,

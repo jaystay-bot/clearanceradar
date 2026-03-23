@@ -33,32 +33,26 @@ export default function Dashboard() {
         .eq('user_id', user.id)
         .eq('is_active', true);
 
-      if (!userFilters || userFilters.length === 0) {
-        setDeals([]);
-        setLoading(false);
-        return;
-      }
-
       // Build query for deals
       let query = supabase
         .from('deals')
-        .select(`*, store_locations(*)`)
-        .eq('is_active', true)
-        .order('first_seen_at', { ascending: false })
+        .select('*')
+        .order('first_seen', { ascending: false })
         .limit(50);
 
       // Apply retailer filter
       if (filter !== 'all') {
         query = query.eq('retailer', filter);
-      } else {
-        // Use user filter retailers
+      } else if (userFilters && userFilters.length > 0) {
         const retailers = [...new Set(userFilters.flatMap(f => f.retailers || []))];
         if (retailers.length > 0) query = query.in('retailer', retailers);
       }
 
-      // Apply minimum discount from first filter
-      const minDiscount = Math.min(...userFilters.map(f => f.min_discount_percent || 0));
-      query = query.gte('discount_percent', minDiscount);
+      // Apply minimum discount from filters if set
+      if (userFilters && userFilters.length > 0) {
+        const minDiscount = Math.min(...userFilters.map(f => f.min_discount_percent || 0));
+        if (minDiscount > 0) query = query.gte('discount_percent', minDiscount);
+      }
 
       const { data, error } = await query;
       if (error) throw error;
@@ -78,11 +72,10 @@ export default function Dashboard() {
 
       const { data: allDeals } = await supabase
         .from('deals')
-        .select('discount_percent, first_seen_at')
-        .eq('is_active', true);
+        .select('discount_percent, first_seen');
 
       if (allDeals) {
-        const todayDeals = allDeals.filter(d => new Date(d.first_seen_at) >= today);
+        const todayDeals = allDeals.filter(d => new Date(d.first_seen) >= today);
         const avgDiscount = allDeals.length > 0
           ? Math.round(allDeals.reduce((sum, d) => sum + (d.discount_percent || 0), 0) / allDeals.length)
           : 0;

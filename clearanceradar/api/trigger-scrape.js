@@ -52,25 +52,26 @@ module.exports = async (req, res) => {
     let errors = 0;
 
     for (const deal of allDeals) {
+      const now = new Date().toISOString();
       const { error } = await supabase
         .from('deals')
         .upsert(
           {
-            retailer: deal.retailer,
-            store_location_id: deal.store_id,
-            product_name: deal.product_name,
-            sku: deal.sku,
-            product_url: deal.product_url,
-            image_url: deal.image_url,
-            original_price: deal.original_price,
+            retailer:        deal.retailer,
+            name:            deal.product_name,
+            sku:             deal.sku,
+            url:             deal.product_url,
+            image_url:       deal.image_url,
+            original_price:  deal.original_price,
             clearance_price: deal.clearance_price,
             discount_percent: deal.discount_percent,
-            category: deal.category,
-            in_stock_quantity: deal.in_stock_quantity,
-            is_active: true,
-            last_verified_at: new Date().toISOString(),
+            category:        deal.category,
+            in_stock:        deal.in_stock_quantity == null ? true : deal.in_stock_quantity > 0,
+            store_id:        deal.store_number || deal.store_id || null,
+            first_seen:      now,
+            last_seen:       now,
           },
-          { onConflict: 'retailer,sku' }
+          { onConflict: 'retailer,sku', ignoreDuplicates: false }
         );
 
       if (error) {
