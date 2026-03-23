@@ -1,10 +1,76 @@
-import React from 'react';
-import { getWhopAuthUrl } from '../lib/whop';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabase';
+import { setWhopToken, setWhopUser } from '../lib/whop';
+import { useAuth } from '../lib/AuthContext';
 
 export default function Login() {
-  const handleWhopLogin = () => {
-    window.location.href = getWhopAuthUrl();
-  };
+  const navigate = useNavigate();
+  const { checkAuth } = useAuth();
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setLoading(true);
+    setError('');
+
+    try {
+      // Generate a stable member_id from email
+      const memberId = 'bypass_' + btoa(email.trim().toLowerCase()).replace(/[^a-zA-Z0-9]/g, '');
+
+      // Upsert user in Supabase
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('whop_member_id', memberId)
+        .single();
+
+      if (!existingUser) {
+        const trialEndsAt = new Date();
+        trialEndsAt.setDate(trialEndsAt.getDate() + 30);
+
+        await supabase.from('users').insert({
+          whop_member_id: memberId,
+          email: email.trim(),
+          subscription_status: 'active',
+          trial_ends_at: trialEndsAt.toISOString(),
+        });
+      }
+
+      // Store session
+      setWhopToken('bypass_token');
+      setWhopUser({ id: memberId, email: email.trim() });
+
+      await checkAuth();
+
+      // Check if they have filters set up
+      const { data: user } = await supabase
+        .from('users')
+        .select('id')
+        .eq('whop_member_id', memberId)
+        .single();
+
+      if (user) {
+        const { data: filters } = await supabase
+          .from('user_filters')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
+
+        navigate(filters && filters.length > 0 ? '/' : '/onboarding');
+      } else {
+        navigate('/onboarding');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="login-page">
@@ -26,12 +92,37 @@ export default function Login() {
       </div>
 
       <div className="login-card">
-        <button className="login-whop-btn" onClick={handleWhopLogin}>
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M10 2L12.5 7.5H18L13.5 11L15.5 17L10 13.5L4.5 17L6.5 11L2 7.5H7.5L10 2Z" fill="currentColor"/>
-          </svg>
-          Continue with Whop
-        </button>
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <input
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            required
+            style={{
+              background: 'rgba(255,255,255,0.07)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 10,
+              padding: '14px 16px',
+              color: '#fff',
+              fontSize: 15,
+              outline: 'none',
+              width: '100%',
+              boxSizing: 'border-box',
+            }}
+          />
+          {error && (
+            <p style={{ color: '#ff4d4d', fontSize: 13, margin: 0 }}>{error}</p>
+          )}
+          <button
+            type="submit"
+            className="login-whop-btn"
+            disabled={loading}
+            style={{ opacity: loading ? 0.6 : 1 }}
+          >
+            {loading ? 'Signing in...' : 'Continue →'}
+          </button>
+        </form>
 
         <div className="divider" />
 
