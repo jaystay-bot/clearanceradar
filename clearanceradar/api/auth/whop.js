@@ -15,43 +15,45 @@ module.exports = async (req, res) => {
   const { code } = req.body || {};
   if (!code) return res.status(400).json({ error: 'No code provided' });
 
-  const clientId     = process.env.WHOP_CLIENT_ID;
+  // Accept either WHOP_CLIENT_ID (server) or REACT_APP_WHOP_CLIENT_ID (frontend build)
+  // The authorize URL uses REACT_APP_WHOP_CLIENT_ID; both must be the same app credential.
+  const clientId     = process.env.WHOP_CLIENT_ID || process.env.REACT_APP_WHOP_CLIENT_ID;
   const clientSecret = process.env.WHOP_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    console.error('Missing WHOP_CLIENT_ID or WHOP_CLIENT_SECRET env vars');
-    return res.status(500).json({ error: 'Server misconfiguration' });
+    console.error('Missing client credentials: WHOP_CLIENT_ID and REACT_APP_WHOP_CLIENT_ID are both unset, or WHOP_CLIENT_SECRET is unset');
+    return res.status(500).json({
+      error: 'Server misconfiguration',
+      detail: `WHOP_CLIENT_ID=${process.env.WHOP_CLIENT_ID ? 'set' : 'unset'}, REACT_APP_WHOP_CLIENT_ID=${process.env.REACT_APP_WHOP_CLIENT_ID ? 'set' : 'unset'}, WHOP_CLIENT_SECRET=${process.env.WHOP_CLIENT_SECRET ? 'set' : 'unset'}`,
+    });
   }
 
   try {
     // 1. Exchange code for access token
-    // Whop requires HTTP Basic Auth for client authentication (client_secret_basic)
-    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-    const params = new URLSearchParams({
-      code,
-      grant_type:   'authorization_code',
-      redirect_uri: REDIRECT_URI,
-    });
-
-    console.error('[whop-auth] attempting token exchange, redirect_uri:', REDIRECT_URI);
+    const clientIdPrefix = clientId.substring(0, 10) + '...';
+    console.error('[whop-auth] client_id prefix:', clientIdPrefix);
+    console.error('[whop-auth] redirect_uri:', REDIRECT_URI);
 
     const tokenRes = await fetch('https://api.whop.com/v5/oauth/token', {
       method: 'POST',
-      headers: {
-        'Content-Type':  'application/x-www-form-urlencoded',
-        'Authorization': `Basic ${basicAuth}`,
-      },
-      body: params.toString(),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id:     clientId,
+        client_secret: clientSecret,
+        code,
+        grant_type:    'authorization_code',
+        redirect_uri:  REDIRECT_URI,
+      }),
     });
 
     if (!tokenRes.ok) {
       const errBody = await tokenRes.text();
-      console.error('[whop-auth] token exchange status:', tokenRes.status);
-      console.error('[whop-auth] token exchange body:', errBody);
+      console.error('[whop-auth] token exchange failed:', tokenRes.status, errBody);
       return res.status(502).json({
         error: 'Token exchange failed',
         detail: errBody,
         status: tokenRes.status,
+        debug: { client_id_prefix: clientIdPrefix, redirect_uri: REDIRECT_URI },
       });
     }
 
