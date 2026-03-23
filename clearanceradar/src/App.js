@@ -13,11 +13,8 @@ import Upgrade from './pages/Upgrade';
 import Admin from './pages/Admin';
 import './styles/global.css';
 
+// Auth bypassed for testing — all routes are open
 function ProtectedRoute({ children }) {
-  const { user, loading, isSubscribed } = useAuth();
-  if (loading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/login" replace />;
-  if (!isSubscribed) return <Navigate to="/upgrade" replace />;
   return children;
 }
 
@@ -45,7 +42,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={!user ? <Login /> : <Navigate to="/" replace />} />
+      <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/upgrade" element={<Upgrade />} />
       <Route path="/onboarding" element={
