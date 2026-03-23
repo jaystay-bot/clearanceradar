@@ -3,7 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { scrapeHomeDepot } = require('./homeDepot');
 const { scrapeLowes } = require('./lowes');
 const { scrapeWalmart } = require('./walmart');
-const { runAlertMatching } = require('../services/alertService');
+const { runAlertMatching } = require('../_services/alertService');
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 

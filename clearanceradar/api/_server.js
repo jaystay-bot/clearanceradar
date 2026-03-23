@@ -40,17 +40,17 @@ app.use('/api/', apiLimiter);
 app.use('/api/auth/', authLimiter);
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/webhooks', require('./routes/webhooks'));
-app.use('/api/deals', require('./routes/deals'));
-app.use('/api/admin', require('./routes/admin'));
+app.use('/api/auth', require('./_routes/auth'));
+app.use('/api/webhooks', require('./_routes/webhooks'));
+app.use('/api/deals', require('./_routes/deals'));
+app.use('/api/admin', require('./_routes/admin'));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Schedule scrapers
 if (process.env.NODE_ENV !== 'test') {
-  const { runScraper } = require('./scraper/scheduler');
+  const { runScraper } = require('./_scraper/scheduler');
 
   // Home Depot every 15 minutes
   cron.schedule('*/15 * * * *', () => runScraper('home_depot'));
