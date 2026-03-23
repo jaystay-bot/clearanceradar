@@ -62,6 +62,13 @@ export function getWhopUser() {
 // Build Whop OAuth URL
 export function getWhopAuthUrl() {
   const clientId = process.env.REACT_APP_WHOP_CLIENT_ID;
+  if (!clientId) {
+    throw new Error(
+      'REACT_APP_WHOP_CLIENT_ID is not set. ' +
+      'Add it to Vercel → Project → Settings → Environment Variables ' +
+      'with the exact name REACT_APP_WHOP_CLIENT_ID (the REACT_APP_ prefix is required for CRA).'
+    );
+  }
   const redirectUri = encodeURIComponent(process.env.REACT_APP_WHOP_REDIRECT_URI || window.location.origin + '/auth/callback');
   return `https://whop.com/oauth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code`;
 }
