@@ -25,24 +25,27 @@ module.exports = async (req, res) => {
 
   try {
     // 1. Exchange code for access token
+    // OAuth2 spec requires application/x-www-form-urlencoded for token endpoint
+    const params = new URLSearchParams({
+      client_id:     clientId,
+      client_secret: clientSecret,
+      code,
+      grant_type:    'authorization_code',
+      redirect_uri:  REDIRECT_URI,
+    });
+
+    console.error('[whop-auth] attempting token exchange, redirect_uri:', REDIRECT_URI);
+
     const tokenRes = await fetch('https://api.whop.com/v5/oauth/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id:     clientId,
-        client_secret: clientSecret,
-        code,
-        grant_type:    'authorization_code',
-        redirect_uri:  REDIRECT_URI,
-      }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
     });
 
     if (!tokenRes.ok) {
       const errBody = await tokenRes.text();
       console.error('[whop-auth] token exchange status:', tokenRes.status);
       console.error('[whop-auth] token exchange body:', errBody);
-      console.error('[whop-auth] redirect_uri used:', REDIRECT_URI);
-      console.error('[whop-auth] client_id used:', clientId);
       return res.status(502).json({
         error: 'Token exchange failed',
         detail: errBody,
